@@ -20,6 +20,10 @@ const db = mysql.createConnection({
     port: process.env.port
 });
 
+app.get('/style.css', function(req, res) {
+    res.sendFile(__dirname + "/" + "index.css");
+  });
+
 app.get('/', (req, res)=>{
     res.sendFile(path.join(__dirname+'/index.html'));
 });
