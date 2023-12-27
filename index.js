@@ -83,5 +83,74 @@ app.post('/api/upload', async (req, res) => {
     }
 });
 
+app.post('/api/user/register', async (req, res) => {
+    // Handle the upload logic here
+    console.log('Received a POST request to /api/user/register');
+    console.log(req.body);
+
+    try {
+        const userData = req.body; // Extract data from the request body
+        const insertQuery = 'INSERT INTO user (username, password, email, birth, role) VALUES (?, ?, ?, ?, ?)';
+
+        const hashedPassword = bcrypt.hashSync(userData.password, 10);
+        db.query(insertQuery, [userData.username, hashedPassword, userData.email, userData.birth, userData.role], (error, result) => {
+            if (error) {
+                console.error(error.message);
+                res.status(500).send('Internal Server Error');
+            } else {
+                console.log('Data inserted successfully');
+                res.status(200).json({ message: 'Upload successful' });
+            }
+        });
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post('/api/user/login', async (req, res) => {
+    console.log('Received a POST request to /api/user/login');
+    console.log(req.body);
+
+    try {
+        const { username, password } = req.body;
+        const user = await new Promise((resolve, reject) => {
+            db.query("SELECT * FROM user WHERE username = ?", [username], (err, result) => {
+                if (err) reject(err);
+                else resolve(result[0]);
+            });
+        });
+
+        if (!user) {
+            res.status(401).json({ message: 'Authentication failed. User not found.' });
+            return;
+        }
+
+        const passwordMatch = bcrypt.compareSync(password, user.password);
+
+        if (!passwordMatch) {
+            res.status(401).json({ message: 'Authentication failed. Invalid password.' });
+            return;
+        }
+
+        // If authentication is successful, include user data in the response
+        res.status(200).json({
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                birth: user.birth,
+                role: user.role,
+                // Include other relevant user information
+            }
+        });
+        console.log('Authentication successful');
+
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send('Internal Server Error');
+    }
+});
+
 app.listen(PORT, () => console.log("Server is running on port: " + PORT))
 module.exports = app;
